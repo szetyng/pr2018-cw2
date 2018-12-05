@@ -1,4 +1,5 @@
 # attempt to remove images from the same camera
+# using knn from sklearn - very slow performance
 
 from scipy.io import loadmat
 import numpy as np

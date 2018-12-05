@@ -1,8 +1,8 @@
-# attempt to remove images from the same camera
+# evaluating baseline approach by getting the k nearest neighbours of query data
+# using our own knn algorithm to delete images from the same label and same camera
 
 from scipy.io import loadmat
 import numpy as np
-from sklearn.neighbors import NearestNeighbors 
 import time
 
 # import json
@@ -19,6 +19,9 @@ labels = data['labels'].flatten()
 query_idx = data['query_idx'].flatten()
 train_idx = data['train_idx'].flatten()
 
+## SETTING K HERE
+k = 1
+
 def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
     knn_id = []
     #knn_dist = []
@@ -27,24 +30,7 @@ def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
         cam = camId[query_id]
         query = features[query_id]
 
-        # gallery_data_f = []
-        # gallery_idx_f = []
-
-        neighbourid_dist_pair = []
-        for a in gallery_idx:
-            if not (labels[a]==label and camId[a]==cam):
-                neighbourid_dist_pair.append([(a, np.linalg.norm(query-features[a]))])
-
-        print(len(neighbourid_dist_pair))
-        print(neighbourid_dist_pair[0])
-        print(neighbourid_dist_pair[1])
-
-        # for a in gallery_idx:
-        #     if not (labels[a]==label and camId[a]==cam):
-        #         gallery_data_f.append(features[a])
-        #         gallery_idx_f.append(a)
-        
-        # neighbourid_dist_pair = [(gallery_idx_f[e], np.linalg.norm(query-gallery_data_f[e])) for e in range(len(gallery_idx_f))]
+        neighbourid_dist_pair = [(a, np.linalg.norm(query-features[a])) for a in gallery_idx if not (labels[a]==label and camId[a]==cam)]
         neighbourid_dist_pair.sort(key = lambda x:x[1])
 
         kneighbour_id = [a[0] for a in neighbourid_dist_pair[:k]]
@@ -62,8 +48,9 @@ for i in query_idx:
     query_labels.append(labels[i])
 query_labels = np.array(query_labels)
 
+# Get k nearest neighbours
 start1 = time.time()
-nn2_idx = knn_camspecific(1,features, labels, query_idx[:5], gallery_idx, camId)
+nn2_idx = knn_camspecific(k,features, labels, query_idx, gallery_idx, camId)
 end1 = time.time()
 print(end1 - start1, 's')
 
