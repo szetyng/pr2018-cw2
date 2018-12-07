@@ -1,5 +1,4 @@
-# evaluating baseline approach by getting the k nearest neighbours of query data
-# using our own knn algorithm to delete images from the same label and same camera
+from metric_learn import MMC_Supervised
 
 from scipy.io import loadmat
 import numpy as np
@@ -23,8 +22,35 @@ query_idx = query_idx - 1
 gallery_idx = gallery_idx - 1
 train_idx = train_idx - 1
 
-## SETTING K HERE
-k = 1
+x = []
+y = []
+for i in train_idx:
+    x.append(features[i])
+    y.append(labels[i])
+
+test = []
+gallery_data = []
+query_data = []
+for i in gallery_idx:
+    test.append(features[i])
+    gallery_data.append(features[i])
+for i in query_idx:
+    test.append(features[i])
+    query_data.append(features[i])
+
+print('here')
+
+mmc = MMC_Supervised(diagonal=True, num_constraints=10000)
+mmc.fit(x, y)
+
+print('done with fitting')
+gallery_data_r = mmc.transform(gallery_data)
+print('done with transforming gallery data')
+query_data_r = mmc.transform(query_data)
+print('done with transforming query data')
+
+
+
 
 def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
     knn_id = []
@@ -46,7 +72,7 @@ def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
     knn_id = np.array(knn_id)
     #knn_dist = np.array(knn_dist)
     return knn_id#, knn_dist
-    
+
 query_labels = []
 for i in query_idx:
     query_labels.append(labels[i])
@@ -54,7 +80,7 @@ query_labels = np.array(query_labels)
 
 # Get k nearest neighbours
 start1 = time.time()
-nn2_idx = knn_camspecific(k,features, labels, query_idx, gallery_idx, camId)
+nn2_idx = knn_camspecific(1,features, labels, query_idx, gallery_idx, camId)
 end1 = time.time()
 print(end1 - start1, 's')
 
