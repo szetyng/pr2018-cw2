@@ -49,8 +49,12 @@ print('done with transforming gallery data')
 query_data_r = mmc.transform(query_data)
 print('done with transforming query data')
 
+features_r = np.zeros((14096, 2048))
 
-
+for i in range(query_idx.shape[0]):
+    features_r[query_idx[i]] = query_data_r[i]
+for i in range(gallery_idx.shape[0]):
+    features_r[gallery_idx[i]] = gallery_data_r[i]
 
 def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
     knn_id = []
@@ -78,9 +82,10 @@ for i in query_idx:
     query_labels.append(labels[i])
 query_labels = np.array(query_labels)
 
+print('starting knn')
 # Get k nearest neighbours
 start1 = time.time()
-nn2_idx = knn_camspecific(1,features, labels, query_idx, gallery_idx, camId)
+nn2_idx = knn_camspecific(1,features_r, labels, query_idx, gallery_idx, camId)
 end1 = time.time()
 print(end1 - start1, 's')
 
