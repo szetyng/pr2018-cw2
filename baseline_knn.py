@@ -23,12 +23,14 @@ query_idx = query_idx - 1
 gallery_idx = gallery_idx - 1
 train_idx = train_idx - 1
 
-## SETTING K HERE
-k = 1
+# SETTING K HERE
+klist = [1,5,10,15,20]
 
+# Returns the k nearest neighbours' indices and distances, for each query image
 def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
     knn_id = []
-    #knn_dist = []
+    knn_dist = []
+
     for aa,query_id in enumerate(query_idx):
         label = labels[query_id]
         cam = camId[query_id]
@@ -38,14 +40,14 @@ def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
         neighbourid_dist_pair.sort(key = lambda x:x[1])
 
         kneighbour_id = [a[0] for a in neighbourid_dist_pair[:k]]
-        #kdist = [a[1] for a in neighbourid_dist_pair[:k]]
+        kdist = [a[1] for a in neighbourid_dist_pair[:k]]
 
         knn_id.append(kneighbour_id)
-        #knn_dist.append(kdist)
+        knn_dist.append(kdist)
         print(aa)
     knn_id = np.array(knn_id)
-    #knn_dist = np.array(knn_dist)
-    return knn_id#, knn_dist
+    knn_dist = np.array(knn_dist)
+    return knn_id, knn_dist
     
 query_labels = []
 for i in query_idx:
@@ -53,19 +55,34 @@ for i in query_idx:
 query_labels = np.array(query_labels)
 
 # Get k nearest neighbours
+kay = max(klist)
 start1 = time.time()
-nn2_idx = knn_camspecific(k,features, labels, query_idx, gallery_idx, camId)
+nn_idx, nn_distances = knn_camspecific(kay,features, labels, query_idx, gallery_idx, camId)
 end1 = time.time()
 print(end1 - start1, 's')
 
-nn2_labels = np.empty(nn2_idx.shape, dtype=np.uint16)
-for i,neighbours in enumerate(nn2_idx):
+nn_labels = np.empty(nn_idx.shape, dtype=np.uint16)
+for i,neighbours in enumerate(nn_idx):
     for j,idx in enumerate(neighbours):
-        nn2_labels[i][j] = labels[idx]
+        nn_labels[i][j] = labels[idx]
 
-corr = []
-for i,neighbours in enumerate(nn2_labels):
+# print accuracy for each k
+for k in klist:
+    corr = []
+    for i,neighbours in enumerate(nn_labels[:,:k]):
+        if query_labels[i] in neighbours:
+            corr.append(query_labels[i])
+    acc = len(corr)/len(query_labels)
+    print('acc'+str(k)+' = ', end='')
+    print(acc*100)
+
+
+# for k = 10
+corr10 = []
+for i,neighbours in enumerate(nn_distances[:,:10]):
     if query_labels[i] in neighbours:
-        corr.append(query_labels[i])
-acc = len(corr)/len(query_labels)
-print(acc)
+        corr10.append(query_labels[i])
+acc10 = len(corr10)/len(query_labels)
+print('acc10 =', acc10)
+
+
