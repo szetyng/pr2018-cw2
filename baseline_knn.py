@@ -2,6 +2,7 @@
 # using our own knn algorithm to delete images from the same label and same camera
 
 from scipy.io import loadmat
+from scipy.spatial import distance
 import numpy as np
 import time
 
@@ -23,6 +24,11 @@ query_idx = query_idx - 1
 gallery_idx = gallery_idx - 1
 train_idx = train_idx - 1
 
+query_labels = []
+for i in query_idx:
+    query_labels.append(labels[i])
+query_labels = np.array(query_labels)
+
 # SETTING K HERE
 klist = [1,5,10,15,20]
 
@@ -36,6 +42,7 @@ def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
         cam = camId[query_id]
         query = features[query_id]
 
+        #neighbourid_dist_pair = [(a, distance.euclidean(np.array(query), features[a])) for a in gallery_idx if not (labels[a]==label and camId[a]==cam)]
         neighbourid_dist_pair = [(a, np.linalg.norm(np.array(query)-features[a])) for a in gallery_idx if not (labels[a]==label and camId[a]==cam)]
         neighbourid_dist_pair.sort(key = lambda x:x[1])
 
@@ -48,11 +55,6 @@ def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
     knn_id = np.array(knn_id)
     knn_dist = np.array(knn_dist)
     return knn_id, knn_dist
-    
-query_labels = []
-for i in query_idx:
-    query_labels.append(labels[i])
-query_labels = np.array(query_labels)
 
 # Get k nearest neighbours
 kay = max(klist)
