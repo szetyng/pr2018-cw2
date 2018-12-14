@@ -43,7 +43,7 @@ def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
         
         knn_id.append(kneighbour_id)
         #knn_dist.append(kdist)
-        print(aa)
+        #print(aa)
     knn_id = np.array(knn_id)
     #knn_dist = np.array(knn_dist)
     return knn_id#, knn_dist
