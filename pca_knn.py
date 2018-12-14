@@ -9,6 +9,7 @@ from sklearn.decomposition import PCA
 import json
 with open('PR_data/feature_data.json', 'r') as f:
     features = json.load(f)
+features = np.array(features)
 
 data = loadmat('PR_data/cuhk03_new_protocol_config_labeled.mat')
 camId = data['camId'].flatten()
@@ -23,8 +24,17 @@ gallery_idx = gallery_idx - 1
 query_idx = query_idx - 1
 train_idx = train_idx - 1
 
-## SETTING K HERE
-k = 1
+query_labels = []
+query_data = []
+for i in query_idx:
+    query_labels.append(labels[i])
+    query_data.append(features[i])
+train_data = []
+for i in train_idx:
+    train_data.append(features[i])
+gallery_data = []
+for i in gallery_idx:
+    gallery_data.append(features[i])
 
 def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
     knn_id = []
@@ -42,53 +52,54 @@ def knn_camspecific(k,features, labels, query_idx, gallery_idx, camId):
 
         knn_id.append(kneighbour_id)
         #knn_dist.append(kdist)
-        print(aa)
+        #print(aa)
     knn_id = np.array(knn_id)
     #knn_dist = np.array(knn_dist)
     return knn_id#, knn_dist
     
-query_labels = []
-for i in query_idx:
-    query_labels.append(labels[i])
 
+mpca = [2048, 1024, 512, 256]
 
-train_data = []
-for i in train_idx:
-    train_data.append(features[i])
+for m in mpca:
+    pca = PCA(n_components=m, random_state=7)
+    start_fit = time.time()
+    pca.fit(train_data)
+    end_fit = time.time()
+    print('Training PCA for mpca of', m, 'took', end_fit-start_fit, 's')
+    
+    start_trans = time.time()
+    gallery_pca = pca.transform(gallery_data)
+    query_pca = pca.transform(query_data)
+    end_trans = time.time()
+    print('Transforming test data took', end_trans-start_trans, 's')
 
-gallery_data = []
-for i in gallery_idx:
-    gallery_data.append(features[i])
+    features_pca = np.zeros((features.shape[0], gallery_pca.shape[1]))
+    for i in range(query_idx.shape[0]):
+        features_pca[query_idx[i]] = query_pca[i]
+    for i in range(gallery_idx.shape[0]):
+        features_pca[gallery_idx[i]] = gallery_pca[i]
 
-query_data = []
-for i in query_idx:
-    query_data.append(features[i])
+    start_knn = time.time()
+    nn_idx = knn_camspecific(10, features_pca, labels, query_idx, gallery_idx, camId)
+    end_knn = time.time()
+    print('KNN took', end_knn-start_knn, 's')
 
-pca = PCA(n_components=2048-1)
-pca.fit(train_data)
-gallery_pca = pca.transform(gallery_data)
-query_pca = pca.transform(query_data)
-features_pca = np.zeros((14096, 2048-1))
+    nn_labels = np.empty(nn_idx.shape, dtype=np.uint16)
 
-for i in range(query_idx.shape[0]):
-    features_pca[query_idx[i]] = query_pca[i]
-for i in range(gallery_idx.shape[0]):
-    features_pca[gallery_idx[i]] = gallery_pca[i]
+    for i,neighbours in enumerate(nn_idx):
+        for j,idx in enumerate(neighbours):
+                nn_labels[i][j] = labels[idx]
 
-# Get k nearest neighbours
-start1 = time.time()
-nn2_idx = knn_camspecific(k,features_pca, labels, query_idx, gallery_idx, camId)
-end1 = time.time()
-print(end1 - start1, 's')
+    # print accuracy for each k
+    klist = [1,5,10]
+    acclist = []
+    for k in klist:
+        corr = []
+        for i,neighbours in enumerate(nn_labels[:,:k]):
+            if query_labels[i] in neighbours:
+                corr.append(query_labels[i])
+        acc = len(corr)/len(query_labels)
+        print('acc'+str(k)+' = ', end='')
+        print(acc*100)
+        acclist.append(acc*100)
 
-nn2_labels = np.empty(nn2_idx.shape, dtype=np.uint16)
-for i,neighbours in enumerate(nn2_idx):
-    for j,idx in enumerate(neighbours):
-        nn2_labels[i][j] = labels[idx]
-
-corr = []
-for i,neighbours in enumerate(nn2_labels):
-    if query_labels[i] in neighbours:
-        corr.append(query_labels[i])
-acc = len(corr)/len(query_labels)
-print(acc)
